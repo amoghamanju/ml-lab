@@ -1,0 +1,68 @@
+import bayespy as bp
+import csv
+import numpy as np
+import pandas as pd
+from colorama import init
+from colorama import Fore,Back
+init()
+ageEnum={'SuperSeniorCitizen':0,'SeniorCitizen':1,'MiddleAged':2,'Youth':3,'Teen':4}
+genderEnum={'Male':0,'Female':1}
+familyhistoryEnum={'Yes':0,'No':1}
+dietEnum={'High':0,'Medium':1,'Low':2}
+lifestyleEnum={'Athlete':0,'Active':1,'Moderate':2,'Sedetary':3}
+cholesterolEnum={'High':0,'BorderLine':1,'Normal':2}
+heartEnum={'Yes':0,'No':1}
+
+with open('7heart_disease_data.csv')as csvfile:
+    lines=csv.reader(csvfile)
+    dataset=list(lines)
+    data=[]
+    for x in dataset:
+        data.append([ageEnum[x[0]],genderEnum[x[1]],familyhistoryEnum[x[2]],dietEnum[x[3]],lifestyleEnum[x[4]],cholesterolEnum[x[5]],heartEnum[x[6]]])
+
+N=len(data)
+
+data=np.array(data)
+
+p_age=bp.nodes.Dirichlet(1*np.ones(5))
+age=bp.nodes.Categorical(p_age,plates=(N,))
+age.observe(data[:,0])
+
+p_gender=bp.nodes.Dirichlet(1*np.ones(2))
+gender=bp.nodes.Categorical(p_gender,plates=(N,))
+gender.observe(data[:,1])
+
+p_familyhistory=bp.nodes.Dirichlet(1*np.ones(2))
+familyhistory=bp.nodes.Categorical(p_familyhistory,plates=(N,))
+familyhistory.observe(data[:,2])
+
+p_diet=bp.nodes.Dirichlet(1*np.ones(3))
+diet=bp.nodes.Categorical(p_diet,plates=(N,))
+diet.observe(data[:,3])
+
+p_lifestyle=bp.nodes.Dirichlet(1*np.ones(4))
+lifestyle=bp.nodes.Categorical(p_lifestyle,plates=(N,))
+lifestyle.observe(data[:,4])
+
+p_cholesterol=bp.nodes.Dirichlet(1*np.ones(3))
+cholesterol=bp.nodes.Categorical(p_cholesterol,plates=(N,))
+cholesterol.observe(data[:,5])
+
+p_heart=bp.nodes.Dirichlet(np.ones(2),plates=(5,2,2,3,4,3))
+heart=bp.nodes.MultiMixture([age,gender,familyhistory,diet,lifestyle,cholesterol],bp.nodes.Categorical,p_heart)
+heart.observe(data[:,6])
+p_heart.update()
+
+m=0
+ 
+while m==0:
+    res=bp.nodes.MultiMixture([
+        int(input("Enter Age :"+str(ageEnum))),
+        int(input("Enter Gender :"+str(genderEnum))),
+        int(input("Enter familyhistory"+str(familyhistoryEnum))),
+        int(input("Enter diet"+str(dietEnum))),
+        int(input("Enter lifestyle"+str(lifestyleEnum))),
+        int(input("Enter Cholestrol:"+str(cholesterolEnum)))],
+        bp.nodes.Categorical,p_heart).get_moments()[0][heartEnum['Yes']]
+    print("heartdiesease probability:"+str(res))
+    m=int(input("Enter for continue:0,exit:1"))
